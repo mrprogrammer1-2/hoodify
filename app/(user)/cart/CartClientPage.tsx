@@ -21,6 +21,7 @@ export default function CartClient() {
   } = useCartStore();
   const { isAuthenticated, isLoading } = useKindeBrowserClient();
   const [mounted, setMounted] = useState(false);
+  console.log("itemss", items);
 
   useEffect(() => {
     setMounted(true);
@@ -34,36 +35,40 @@ export default function CartClient() {
     );
   }
 
-  const removeCartItem = async (item: CartItem) => {
+  const removeCartItem = async (item: any) => {
     removeFromCart(item);
     if (isAuthenticated) {
       await removeFromCartDb(item.productId, item.variantId);
     }
   };
-  const handleIncrement = async (item: CartItem) => {
-    incrementQuantity(item.productId);
+
+  const handleIncrement = async (item: any) => {
+    incrementQuantity(item.productId, item.variantId, item.addOns);
 
     if (isAuthenticated) {
       try {
-        await incrementCartItemDb(
-          item.productId,
-          item.variantId,
-          // item.itemType,
-        );
+        await incrementCartItemDb(item.productId, item.variantId);
       } catch (error) {
         console.error("Error in incrementCartItemDb:", error);
       }
-    } else {
-      console.log("User not authenticated, skipping DB update");
     }
   };
 
-  const handleDecrement = async (item: CartItem) => {
-    decrementQuantity(item.productId);
+  const handleDecrement = async (item: any) => {
+    decrementQuantity(item.productId, item.variantId, item.addOns);
 
     if (isAuthenticated) {
       await decrementCartItemDb(item.productId, item.variantId);
     }
+  };
+
+  const getAddOnsKey = (addOns: any[] | undefined) => {
+    if (!addOns || addOns.length === 0) return "";
+    return JSON.stringify(
+      addOns
+        .map((a) => ({ id: a.id, text: a.text }))
+        .sort((a, b) => a.id.localeCompare(b.id)),
+    );
   };
 
   return (
@@ -79,20 +84,34 @@ export default function CartClient() {
         <div>
           <div className="space-y-6">
             <h1 className="text-2xl font-bold">Shopping Cart</h1>
-            {items.map((item) => (
-              <CartItem
-                key={`${item.productId}-${item.variantId}`}
-                price={item.productPrice}
-                quantity={item.quantity!}
-                image={item.image}
-                name={item.productName}
-                color={item.variantColor}
-                size={item.variantSize}
-                onIncrease={() => handleIncrement(item)}
-                onDecrease={() => handleDecrement(item)}
-                onRemove={() => removeCartItem(item)}
-              />
-            ))}
+            {items.map((item) => {
+              // Detect if item has customization
+              const hasCustomization =
+                item.className?.includes("customized") || false;
+              const customizationSides = item.className
+                ? (item.className.match(/customized/g) || []).length
+                : 0;
+              const addOnsKey = getAddOnsKey(item.addOns);
+
+              return (
+                <CartItem
+                  item={item}
+                  key={`${item.productId}-${item.variantId}-${addOnsKey}`}
+                  price={item.productPrice}
+                  quantity={item.quantity!}
+                  image={item.image}
+                  name={item.productName}
+                  color={item.variantColor}
+                  size={item.variantSize}
+                  addOns={item.addOns}
+                  hasCustomization={hasCustomization}
+                  customizationSides={customizationSides}
+                  onIncrease={() => handleIncrement(item)}
+                  onDecrease={() => handleDecrement(item)}
+                  onRemove={() => removeCartItem(item)}
+                />
+              );
+            })}
           </div>
         </div>
       )}

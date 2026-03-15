@@ -4,8 +4,27 @@ import { saveHistory } from "@/lib/canvas";
 import Dimensions from "./settings/Dimensions";
 import Text from "./settings/Text";
 import Color from "./settings/Color";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Export from "./settings/Export";
+import { AddToCartButton } from "@/components/AddToCartButton";
+import { AddOnSelector } from "@/components/AddOnSelector";
+import type { AddOn } from "@/stores/cart-store";
+
+type RightBarProps = RightSidebarProps & {
+  product?: {
+    id: string;
+    name: string;
+    price: number;
+    images: { url: string; color: string | null }[];
+  };
+  selectedVariant?: {
+    id: string;
+    color: string;
+    size: string | null;
+  } | null;
+  designs: Record<View, string | null>;
+  currentView: View;
+};
 
 export default function RightBar({
   elementAttributes,
@@ -15,9 +34,14 @@ export default function RightBar({
   undoStackRef,
   redoStackRef,
   isRestoringHistory,
-}: RightSidebarProps) {
+  product,
+  designs,
+  currentView,
+  selectedVariant,
+}: RightBarProps) {
   const inputRef = useRef(null);
   const strokeRef = useRef(null);
+  const [selectedAddOns, setSelectedAddOns] = useState<AddOn[]>([]);
 
   const handleInputChange = (property: string, value: string) => {
     isEditingRef.current = true;
@@ -85,6 +109,38 @@ export default function RightBar({
         handleInputChange={handleInputChange}
       />
       <Export />
+
+      {product && selectedVariant && (
+        <div className="px-5 py-4 border-t border-gray-800 space-y-4">
+          {/* Add-ons Section */}
+          <div className="border-b border-gray-800 pb-4">
+            <AddOnSelector
+              selectedAddOns={selectedAddOns}
+              onAddOnsChange={setSelectedAddOns}
+            />
+          </div>
+
+          <AddToCartButton
+            productId={product.id}
+            variantId={selectedVariant.id}
+            productName={product.name}
+            productPrice={product.price}
+            variantColor={selectedVariant.color}
+            variantSize={selectedVariant.size || ""}
+            fabricRef={fabricRef}
+            designs={designs}
+            currentView={currentView}
+            addOns={selectedAddOns}
+            image={
+              product.images.find((img) => img.color === selectedVariant.color)
+                ?.url ||
+              product.images[0]?.url ||
+              ""
+            }
+            className="w-full"
+          />
+        </div>
+      )}
     </div>
   );
 }

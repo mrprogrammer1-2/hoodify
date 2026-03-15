@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import CanvasContainer from "./CanvasContainer";
 import * as fabric from "fabric";
 import {
@@ -19,6 +20,7 @@ import { handleDelete } from "@/lib/key-events";
 import { defaultNavElement } from "@/constants";
 import RightBar from "./RightBar";
 import ViewTabs from "./ViewTabs";
+import { useSearchParams } from "next/navigation";
 
 type EditorClientProps = {
   product: {
@@ -55,20 +57,21 @@ type EditorClientProps = {
 export default function EditorClient({ product }: EditorClientProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
+
   const isDrawing = useRef(false);
   const selectedShapeRef = useRef<string | null>(null);
   const shapeRef = useRef<fabric.Object | null>(null);
+
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [layers, setLayers] = useState<fabric.Object[]>([]);
 
   const undoStackRef = useRef<string[]>([]);
   const redoStackRef = useRef<string[]>([]);
   const isRestoringHistory = useRef(false);
 
-  const saveTimeout = useRef<NodeJS.Timeout | null>(null);
   const isInitialized = useRef(false);
-
   const isEditingRef = useRef(false);
+
+  const searchParams = useSearchParams();
 
   const [activeElement, setActiveElement] = useState<ActiveElement>({
     name: "",
@@ -95,8 +98,17 @@ export default function EditorClient({ product }: EditorClientProps) {
     "right-sleeve": null,
   });
 
+  const preSelectedSize = searchParams.get("size") ?? "";
+  const preSelectedColor = searchParams.get("color") ?? "";
+
+  const selectedVariant =
+    product.variants.find(
+      (v) => v.size === preSelectedSize && v.color === preSelectedColor,
+    ) ?? null;
+
   const handleActiveElement = (el: ActiveElement) => {
     setActiveElement(el);
+
     if (
       ["rectangle", "circle", "line", "freeform", "text", "triangle"].includes(
         el.value as string,
@@ -121,16 +133,19 @@ export default function EditorClient({ product }: EditorClientProps) {
 
       return;
     }
+
     if (el.value === "reset") {
       fabricRef.current?.clear();
       setActiveElement(defaultNavElement);
       return;
     }
+
     if (el.value === "delete") {
       handleDelete(fabricRef.current!);
       setActiveElement(defaultNavElement);
       return;
     }
+
     if (el.value === "image") {
       imageInputRef.current?.click();
       isDrawing.current = false;
@@ -168,25 +183,21 @@ export default function EditorClient({ product }: EditorClientProps) {
 
     const canvas = fabricRef.current;
 
-    // 1️⃣ Save current canvas state properly
     const currentCanvasState = canvas.toJSON();
+    console.log(currentCanvasState);
 
     setDesigns((prev) => ({
       ...prev,
       [currentView]: JSON.stringify(currentCanvasState),
     }));
 
-    // 2️⃣ Clear undo/redo stacks per view (VERY IMPORTANT)
     undoStackRef.current = [];
     redoStackRef.current = [];
 
-    // 3️⃣ Switch view
     setCurrentView(view);
 
-    // 4️⃣ Clear canvas
     canvas.clear();
 
-    // 5️⃣ Load new view design if exists
     const newDesign = designs[view];
 
     if (newDesign) {
@@ -198,7 +209,7 @@ export default function EditorClient({ product }: EditorClientProps) {
     }
   };
 
-  // Initialize canvas once
+  // Initialize canvas
   useEffect(() => {
     const canvas = initializeCanvas({
       canvasRef,
@@ -248,9 +259,7 @@ export default function EditorClient({ product }: EditorClientProps) {
       });
     });
 
-    const syncLayers = () => {
-      setLayers([...canvas.getObjects()]);
-
+    const syncHistory = () => {
       saveHistory({
         canvas,
         undoStackRef,
@@ -259,14 +268,9 @@ export default function EditorClient({ product }: EditorClientProps) {
       });
     };
 
-    canvas.on("object:added", syncLayers);
-    canvas.on("object:modified", syncLayers);
-    canvas.on("object:removed", syncLayers);
-
-    // canvas.on("object:added", autoSave);
-    // canvas.on("object:modified", autoSave);
-    // canvas.on("object:removed", autoSave);
-    // canvas.on("path:created", autoSave);
+    canvas.on("object:added", syncHistory);
+    canvas.on("object:modified", syncHistory);
+    canvas.on("object:removed", syncHistory);
 
     const onResize = () => {
       handleResize({ canvas });
@@ -274,36 +278,26 @@ export default function EditorClient({ product }: EditorClientProps) {
 
     window.addEventListener("resize", onResize);
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.key === "z") {
-        event.preventDefault();
-        handleUndo();
-      }
-
-      if (event.ctrlKey && event.key === "y") {
-        event.preventDefault();
-        handleRedo();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
     isInitialized.current = true;
 
     return () => {
       window.removeEventListener("resize", onResize);
-      window.removeEventListener("keydown", handleKeyDown);
       canvas.dispose();
     };
   }, []);
 
-  // Load initial background image (only once)
+  // Load background image
   useEffect(() => {
-    if (!fabricRef.current || !product || !isInitialized.current) return;
+    if (!fabricRef.current || !isInitialized.current) return;
 
     const canvas = fabricRef.current;
+
     const loadBackgroundImage = async () => {
       const productImage =
+        product.images.find(
+          (img) =>
+            img.place === currentView && img.color === selectedVariant?.color,
+        )?.url ||
         product.images.find((img) => img.place === currentView)?.url ||
         product.images[0]?.url;
 
@@ -333,81 +327,15 @@ export default function EditorClient({ product }: EditorClientProps) {
     };
 
     loadBackgroundImage();
-  }, [product, currentView]);
-
-  // Handle view switching
-  useEffect(() => {
-    if (!fabricRef.current || !isInitialized.current) return;
-
-    const canvas = fabricRef.current;
-
-    const switchView = async () => {
-      // Load background for new view
-      const imageForView = product.images.find(
-        (img) => img.place === currentView,
-      );
-
-      if (imageForView) {
-        const img = await fabric.Image.fromURL(imageForView.url, {
-          crossOrigin: "anonymous",
-        });
-
-        const canvasWidth = canvas.getWidth();
-        const canvasHeight = canvas.getHeight();
-
-        img.scaleToWidth(canvasWidth);
-        img.scaleToHeight(canvasHeight);
-
-        img.set({
-          originX: "center",
-          originY: "center",
-          left: canvasWidth / 2,
-          top: canvasHeight / 2,
-          selectable: false,
-          evented: false,
-          isProductImage: true,
-        });
-
-        // canvas.add(img);
-        canvas.backgroundImage = img;
-        // canvas.sendToBack(img);
-      }
-
-      // Load saved design for new view
-      // const saved = designs[currentView];
-      // console.log("saved designs", saved);
-      // if (saved) {
-      //   try {
-      //     const parsed = JSON.parse(saved);
-
-      //     // Use enlivenObjects to recreate fabric objects
-      //     if (parsed.objects && parsed.objects.length > 0) {
-      //       (fabric.util as any).enlivenObjects(
-      //         parsed.objects,
-      //         (objects: fabric.Object[]) => {
-      //           objects.forEach((obj) => {
-      //             canvas.add(obj);
-      //           });
-      //           canvas.requestRenderAll();
-      //         },
-      //       );
-      //     } else {
-      //       canvas.requestRenderAll();
-      //     }
-      //   } catch (error) {
-      //     console.error("Error loading saved design:", error);
-      //     canvas.requestRenderAll();
-      //   }
-      // } else {
-      //   canvas.requestRenderAll();
-      // }
-    };
-
-    switchView();
-  }, [currentView]);
+  }, [product, currentView, selectedVariant]);
 
   return (
     <>
+      {/* Variant indicator */}
+      <div className="absolute top-4 left-4 z-50 bg-white px-3 py-1 rounded shadow text-sm">
+        {selectedVariant?.size} / {selectedVariant?.color}
+      </div>
+
       <EditorNav
         activeElement={activeElement}
         imageInputRef={imageInputRef}
@@ -425,12 +353,14 @@ export default function EditorClient({ product }: EditorClientProps) {
         onRedo={handleRedo}
         handleActiveElement={handleActiveElement}
       />
+
       <section className="h-full flex flex-row">
         <div className="flex flex-col flex-5">
           <ViewTabs
             currentView={currentView}
             handleViewSwitch={handleViewSwitch}
           />
+
           <CanvasContainer
             canvasRef={canvasRef}
             product={product}
@@ -440,6 +370,7 @@ export default function EditorClient({ product }: EditorClientProps) {
             currentView={currentView}
           />
         </div>
+
         <RightBar
           elementAttributes={elementAttributes}
           setElementAttributes={setElementAttributes}
@@ -448,6 +379,10 @@ export default function EditorClient({ product }: EditorClientProps) {
           undoStackRef={undoStackRef}
           redoStackRef={redoStackRef}
           isRestoringHistory={isRestoringHistory}
+          product={product}
+          selectedVariant={selectedVariant}
+          designs={designs}
+          currentView={currentView}
         />
       </section>
     </>

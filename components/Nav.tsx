@@ -19,12 +19,7 @@ export default function Nav() {
   const { user, isAuthenticated, getPermission, isLoading } =
     useKindeBrowserClient();
   const { clearCart } = useCartStore();
-  const [mounted, setMounted] = useState(false);
   const isAllowed = !isLoading && getPermission("admin:allowed")?.isGranted;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const resetCart = () => {
     console.log("reset cart");
@@ -49,7 +44,7 @@ export default function Nav() {
         </div>
 
         <div className="flex gap-5 items-center">
-          {!mounted ? (
+          {isLoading ? (
             <>
               <Button disabled>Loading...</Button>
             </>

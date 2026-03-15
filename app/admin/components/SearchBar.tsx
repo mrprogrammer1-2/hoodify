@@ -13,7 +13,7 @@ export default function SearchBar({
   defaultSearch?: string;
 }) {
   return (
-    <Form action={action} className="flex gap-3 items-center max-w-2xl">
+    <Form action={action} className="flex gap-3 items-center flex-1">
       {userId && <input type="hidden" name="userId" value={userId} />}
 
       <div className="relative flex-1">

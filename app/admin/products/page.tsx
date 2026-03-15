@@ -11,11 +11,13 @@ export default async function ProductsPage({
   const { userId, search } = await searchParams;
   return (
     <div>
-      <SearchBar
-        action="/admin/products"
-        userId={userId}
-        defaultSearch={search}
-      />
+      <div className="my-2 mb-4 grid place-content-cente">
+        <SearchBar
+          action="/admin/products"
+          userId={userId}
+          defaultSearch={search}
+        />
+      </div>
       <h1 className="bg-neutral-700 text-white text-center text-xl py-2">
         All Products
       </h1>

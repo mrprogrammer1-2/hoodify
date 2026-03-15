@@ -81,6 +81,7 @@ export const getOrderById = async (orderId: string) => {
     })
     .from(orders)
     .leftJoin(usersTable, eq(orders.userId, usersTable.id))
+    // .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
     .where(eq(orders.id, orderId));
 
   if (!order[0]) return null;
@@ -94,8 +95,10 @@ export const getOrderById = async (orderId: string) => {
       quantity: orderItems.quantity,
       unitPrice: orderItems.unitPrice,
       productName: products.name,
+      customization: orderItems.customization as any,
       variantColor: productVariants.color,
       variantSize: productVariants.size,
+      addOn: orderItems.addOn as any,
       imageUrl: sql<string>`
         COALESCE(
           (SELECT url FROM ${productImages} 

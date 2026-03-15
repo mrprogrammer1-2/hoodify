@@ -77,7 +77,7 @@ export default function CanvasContainer({
           productId: product.id,
           size: variant.size!,
           color: variant.color,
-          customization: updatedDesigns,
+          customization: JSON.stringify(updatedDesigns),
         });
 
         alert("Added to cart!");
@@ -91,17 +91,6 @@ export default function CanvasContainer({
     <div className="flex flex-col flex-5">
       <div id="canvas" className="min-h-dvh select-none bg-gray-400">
         <canvas ref={canvasRef} className="select-none" />
-      </div>
-
-      <div className="p-4 border-t">
-        {/* Add variant selector here */}
-        <Button
-          onClick={handleSaveToCart}
-          disabled={isSaving || !selectedVariant}
-          className="w-full"
-        >
-          {isSaving ? "Saving..." : "Add to Cart"}
-        </Button>
       </div>
     </div>
   );

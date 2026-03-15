@@ -12,7 +12,7 @@ export default async function ProductsTable({ search }: { search?: string }) {
   console.log(data);
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto py-4">
       <DataTable columns={columns} data={data} />
     </div>
   );

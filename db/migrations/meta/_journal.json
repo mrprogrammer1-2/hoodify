@@ -8,6 +8,20 @@
       "when": 1770903849376,
       "tag": "0000_bent_carnage",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773322111537,
+      "tag": "0001_gigantic_daimon_hellstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773322156616,
+      "tag": "0002_spooky_bushwacker",
+      "breakpoints": true
     }
   ]
 }

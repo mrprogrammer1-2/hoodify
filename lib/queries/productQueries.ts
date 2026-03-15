@@ -199,3 +199,23 @@ export async function getAllProducts(search?: string) {
 
   return Array.from(productsMap.values());
 }
+
+export async function getTotalProducts() {
+  try {
+    // Drizzle recommends casting count results for PostgreSQL/Neon
+    const result = await db
+      .select({
+        count: sql<number>`cast(count(*) as integer)`.as("count"),
+      })
+      .from(products);
+
+    // Alternatively, use the $count utility wrapper (requires Drizzle v0.34.1+)
+    // const totalUsers = await db.$count(users);
+
+    // The result is an array, so we return the first element's count
+    return result[0].count;
+  } catch (error) {
+    console.error("Error fetching user count:", error);
+    throw new Error("Failed to fetch total users");
+  }
+}

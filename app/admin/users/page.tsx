@@ -16,8 +16,14 @@ export default async function page({
 
   return (
     <div className="w-full h-full">
-      <SearchBar action="/admin/users" userId={userId} defaultSearch={search} />
-      <h1 className="bg-neutral-700 text-white text-center text-xl py-2">
+      <div className="my-2 mb-4 grid place-content-cente">
+        <SearchBar
+          action="/admin/users"
+          userId={userId}
+          defaultSearch={search}
+        />
+      </div>
+      <h1 className="bg-neutral-700 text-white text-center text-xl py-2 pb-0">
         All Users
       </h1>
       <Suspense fallback={<Loader />}>

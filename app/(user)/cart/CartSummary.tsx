@@ -7,13 +7,23 @@ import { useRouter } from "next/navigation";
 export function CartSummary({ currentStep }: { currentStep: number }) {
   const { items } = useCartStore();
 
-  const subtotal = items.reduce(
+  const totalItems = items.reduce(
     (total, item) => total + item.productPrice * (item.quantity ?? 0),
     0,
   );
 
-  const shipping = subtotal > 0 ? 50 : 0; // Free shipping over certain amount
-  const tax = subtotal * 0.14; // 14% tax
+  const addOnTotal = items.reduce((total, item) => {
+    const addOnsPrice = (item.addOns || []).reduce(
+      (sum, addon) => sum + addon.price,
+      0,
+    );
+    return total + addOnsPrice;
+  }, 0);
+
+  const subtotal = totalItems + addOnTotal;
+
+  const shipping = subtotal > 0 ? 50 : 0;
+  const tax = subtotal * 0.14;
   const total = subtotal + shipping + tax;
 
   const router = useRouter();
@@ -25,23 +35,23 @@ export function CartSummary({ currentStep }: { currentStep: number }) {
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Subtotal</span>
-          <span>${subtotal.toFixed(2)}</span>
+          <span>{subtotal.toFixed(0)} EGP</span>
         </div>
 
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Shipping</span>
-          <span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
+          <span>{shipping === 0 ? "Free" : `${shipping.toFixed(0)} EGP`}</span>
         </div>
 
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Tax (14%)</span>
-          <span>${tax.toFixed(2)}</span>
+          <span>{tax.toFixed(0)} EGP</span>
         </div>
 
         <div className="border-t pt-2 mt-2">
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
-            <span>${total.toFixed(2)}</span>
+            <span>{total.toFixed(0)} EGP</span>
           </div>
         </div>
       </div>
@@ -53,9 +63,6 @@ export function CartSummary({ currentStep }: { currentStep: number }) {
           size="lg"
           disabled={items.length === 0}
         >
-          {/* <Link href="/checkout" className="w-full">
-          Proceed to Checkout
-        </Link> */}
           Continue
         </Button>
       )}

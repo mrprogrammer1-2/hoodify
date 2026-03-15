@@ -99,7 +99,7 @@ export const orderItems = pgTable(
     variantId: uuid("variant_id").references(() => productVariants.id),
     quantity: integer("quantity").notNull().default(1),
     unitPrice: integer("unit_price").notNull(),
-    // itemType: itemTypeEnum("item_type").notNull(),
+    addOn: jsonb("add_on"),
     customization: jsonb("customization"),
   },
   (t) => ({

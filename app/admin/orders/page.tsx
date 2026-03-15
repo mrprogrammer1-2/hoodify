@@ -12,11 +12,13 @@ export default async function OrdersPage({
 
   return (
     <div>
-      <SearchBar
-        action="/admin/orders"
-        userId={userId}
-        defaultSearch={search}
-      />
+      <div className="my-2 mb-4 grid place-content-cente">
+        <SearchBar
+          action="/admin/orders"
+          userId={userId}
+          defaultSearch={search}
+        />
+      </div>
       <h1 className="bg-neutral-700 text-white text-center text-xl py-2">
         All Orders
       </h1>

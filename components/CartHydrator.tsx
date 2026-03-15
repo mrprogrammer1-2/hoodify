@@ -19,15 +19,17 @@ export function CartHydrator() {
   useEffect(() => {
     if (isLoading) return; // ⛔ wait for Kinde
 
+    // Clear persisted cart data immediately to prevent stale data
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("cart-storage");
+    }
+
     if (!isAuthenticated) {
       setHydrated();
       return;
     }
 
-    // const isCartItemType = (value: string): value is CartItemType =>
-    //   value === "product" || value === "customization" || value === "addon";
-
-    const hasSynced = localStorage.getItem(HAS_SYNCED_KEY);
+    const hasSynced = typeof window !== 'undefined' ? localStorage.getItem(HAS_SYNCED_KEY) : null;
 
     (async () => {
       const serverItems = await getUserCart();
@@ -44,7 +46,7 @@ export function CartHydrator() {
         image: item.image ?? "/placeholder.png",
       }));
 
-      const persisted = localStorage.getItem("cart-storage");
+      const persisted = typeof window !== 'undefined' ? localStorage.getItem("cart-storage") : null;
       const guestItems = persisted
         ? (JSON.parse(persisted)?.state?.items ?? [])
         : [];
@@ -74,22 +76,17 @@ export function CartHydrator() {
             variantColor: item.color ?? undefined,
             variantSize: item.size ?? undefined,
             quantity: item.quantity,
-            // itemType: isCartItemType(item.itemType) ? item.itemType : "product",
             image: item.image ?? "/placeholder.png",
           })),
         );
 
-        localStorage.removeItem("cart-storage");
         setHydrated();
 
         return;
       }
 
+      // Always sync server items to store - this ensures cart reflects current DB state
       setItemsFromServer(cartItems);
-      if (cartItems.length === 0) {
-        clearCart();
-      }
-      localStorage.removeItem("cart-storage");
       setHydrated();
     })();
   }, [isAuthenticated, isLoading, clearCart, setItemsFromServer, setHydrated]);

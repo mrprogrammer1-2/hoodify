@@ -279,7 +279,7 @@ export const saveHistory = ({
 
   const json = JSON.stringify(canvas.toObject().objects);
   const last = undoStackRef.current.at(-1);
-  // console.log(json);
+  console.log("json", json);
   if (json === last) return;
 
   undoStackRef.current.push(json);
@@ -288,7 +288,6 @@ export const saveHistory = ({
   if (undoStackRef.current.length > 50) {
     undoStackRef.current.shift();
   }
-  console.log(undoStackRef.current);
 };
 
 export const undo = ({
@@ -300,6 +299,7 @@ export const undo = ({
   if (!canvas || undoStackRef.current.length < 2) return;
 
   isRestoringHistory.current = true;
+  console.log(undoStackRef.current);
 
   const current = undoStackRef.current.pop()!;
   redoStackRef.current.push(current);
