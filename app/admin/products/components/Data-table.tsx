@@ -23,6 +23,8 @@ import { DataTablePagination } from "./DataTablePagination";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Trash } from "lucide-react";
+import { deleteProducts } from "@/lib/actions/deleteProducts";
+import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -35,6 +37,9 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState({});
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const router = useRouter();
 
   const table = useReactTable({
     data,
@@ -50,24 +55,50 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  const router = useRouter();
+  const handleDelete = async () => {
+    const selectedRows = table.getSelectedRowModel().rows;
+    const productIds = selectedRows.map(
+      (row) => (row.original as any).id as string,
+    );
+
+    if (productIds.length === 0) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteProducts(productIds);
+      setRowSelection({});
+      setShowConfirmModal(false);
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting products:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const selectedCount = Object.keys(rowSelection).length;
 
   return (
     <div className="mt-5 relative">
-      {Object.keys(rowSelection).length > 0 && (
+      {selectedCount > 0 && (
         <div className="mb-2 flex justify-end absolute -top-11 right-0">
           <Button
-            // onClick={() => {
-            //   const ids = Object.keys(rowSelection);
-            //   router.push(`/admin/users/${ids[0]}`);
-            // }}
             className="bg-red-500 text-white hover:bg-red-400 cursor-pointer"
+            onClick={() => setShowConfirmModal(true)}
+            disabled={isDeleting}
           >
-            Delete
+            {isDeleting ? "Deleting..." : "Delete"}
             <Trash />
           </Button>
         </div>
       )}
+      <ConfirmDeleteModal
+        open={showConfirmModal}
+        onOpenChange={setShowConfirmModal}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        itemCount={selectedCount}
+      />
       <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>

@@ -2,8 +2,11 @@ import React from "react";
 import SingleUserClient from "./SingleUserClient";
 import { getUserById } from "@/lib/queries/userQueries";
 import {
+  getOrders,
   userRecentOrders,
+  userTotalCancelledOrders,
   userTotalOrders,
+  userTotalPendingOrders,
   userTotalSpent,
 } from "@/lib/queries/orderQueries";
 
@@ -14,12 +17,16 @@ export default async function SingleUserPage({
 }) {
   const { userId } = await params;
   const user = await getUserById(userId);
-  console.log(user);
+  console.log("userrrrrrrr", user);
   const totalSpent = await userTotalSpent(userId);
   const totalOrders = await userTotalOrders(userId);
+  const orders = await getOrders(userId);
   const recentOrders = await userRecentOrders(userId);
+  const totalPendingOrders = await userTotalPendingOrders(userId);
+  const totalCancelledOrders = await userTotalCancelledOrders(userId);
   console.log("totalspent", totalSpent);
   console.log("totalOrders", totalOrders);
+  console.log("orders", orders);
   console.log("recentOrders", recentOrders);
 
   return (
@@ -29,6 +36,8 @@ export default async function SingleUserPage({
         totalSpent={totalSpent}
         totalOrders={totalOrders}
         recentOrders={recentOrders}
+        totalPendingOrders={totalPendingOrders}
+        totalCancelledOrders={totalCancelledOrders}
       />
     </div>
   );

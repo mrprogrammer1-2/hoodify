@@ -14,11 +14,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { updateUserActiveStatus } from "@/lib/actions/updateUserActiveStatus";
+import { useState } from "react";
 
 type Props = {
   user: User;
   totalSpent: number;
   totalOrders: number;
+  totalPendingOrders: number;
+  totalCancelledOrders: number;
   recentOrders: {
     id: string;
     status:
@@ -33,80 +37,72 @@ type Props = {
   }[];
 };
 
-const SingleUserPage = ({
+const SingleUserClient = ({
   user,
   totalSpent,
   totalOrders,
   recentOrders,
+  totalPendingOrders,
+  totalCancelledOrders,
 }: Props) => {
   const router = useRouter();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [userActive, setUserActive] = useState(user.active);
 
-  // 🔹 Replace with real user data from DB
-  //   const user = {
-  //     id: "2a454917-73e1-4ddb-a425-d722b22715ba",
-  //     name: "John Doe",
-  //     email: "john.doe@gmail.com",
-  //     username: "john.doe",
-  //     phone: "+1 234 5678",
-  //     address: "New York, NY",
-  //     role: "Admin",
-  //     status: "Active",
-  //     createdAt: "2025-01-01",
-  //     totalOrders: 12,
-  //     pendingOrders: 3,
-  //     totalSpent: 1450,
-  //     recentOrders: [
-  //       {
-  //         id: "ORD-1001",
-  //         date: "2025-02-20",
-  //         status: "Delivered",
-  //         total: 250,
-  //       },
-  //       {
-  //         id: "ORD-1002",
-  //         date: "2025-02-22",
-  //         status: "Pending",
-  //         total: 180,
-  //       },
-  //       {
-  //         id: "ORD-1003",
-  //         date: "2025-02-25",
-  //         status: "Processing",
-  //         total: 320,
-  //       },
-  //     ],
-  //   };
+  const handleToggleActive = async () => {
+    setIsUpdating(true);
+    try {
+      await updateUserActiveStatus(user.id, !userActive);
+      setUserActive(!userActive);
+    } catch (error) {
+      console.error("Error updating user status:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
       {/* ================= HEADER ================= */}
-      <Card>
+      <Card className="relative">
         <CardContent className="flex items-center justify-between p-6">
           <div className="flex items-center gap-4">
             <Avatar className="size-14">
-              <AvatarImage src="https://avatars.githubusercontent.com/u/1486366" />
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarImage src={user.avatar || undefined} className=" object-cover" />
+              <AvatarFallback>
+                {user.email?.charAt(0).toLocaleUpperCase()}
+              </AvatarFallback>
             </Avatar>
+
+            <div
+              className={`absolute flex justify-center items-center gap-1 right-1 top-2 text-white px-2 py-1 rounded-md ${userActive ? "bg-green-400" : "bg-red-400"}`}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${userActive ? "bg-green-500" : "bg-red-500"}`}
+              />
+              <span>{userActive ? "Active" : "Inactive"}</span>
+            </div>
 
             <div>
               <h1 className="text-2xl font-semibold">
                 {user.firstName} {user.lastName}
               </h1>
               <p className="text-sm text-muted-foreground">{user.email}</p>
-
-              {/* <div className="flex gap-2 mt-2">
-                <Badge variant="secondary">{user.role}</Badge>
-                <Badge
-                  variant={user.status === "Active" ? "default" : "destructive"}
-                >
-                  {user.status}
-                </Badge>
-              </div> */}
             </div>
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline">Edit</Button>
+            <Button
+              variant={userActive ? "destructive" : "default"}
+              onClick={handleToggleActive}
+              disabled={isUpdating}
+            >
+              {isUpdating
+                ? "Updating..."
+                : userActive
+                  ? "Deactivate User"
+                  : "Activate User"}
+            </Button>
             <Button
               variant="outline"
               onClick={() => router.push(`/admin/orders?userId=${user.id}`)}
@@ -118,7 +114,7 @@ const SingleUserPage = ({
       </Card>
 
       {/* ================= STATS ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground">Total Orders</p>
@@ -129,7 +125,14 @@ const SingleUserPage = ({
         <Card>
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground">Pending Orders</p>
-            {/* <h2 className="text-2xl font-bold">{user.pendingOrders}</h2> */}
+            <h2 className="text-2xl font-bold">{totalPendingOrders}</h2>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-sm text-muted-foreground">Cancelled Orders</p>
+            <h2 className="text-2xl font-bold">{totalCancelledOrders}</h2>
           </CardContent>
         </Card>
 
@@ -161,21 +164,18 @@ const SingleUserPage = ({
 
           <div className="flex justify-between">
             <span className="font-medium">Phone</span>
-            {/* <span>{user.phone}</span> */}
-          </div>
-
-          <Separator />
-
-          <div className="flex justify-between">
-            <span className="font-medium">Address</span>
-            {/* <span>{user.address}</span> */}
+            <span>{user.phone ?? "N/A"}</span>
           </div>
 
           <Separator />
 
           <div className="flex justify-between">
             <span className="font-medium">Joined</span>
-            {/* <span>{user.createdAt}</span> */}
+            <span>
+              {user.createdAt
+                ? new Date(user.createdAt).toLocaleDateString()
+                : "N/A"}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -246,4 +246,4 @@ const SingleUserPage = ({
   );
 };
 
-export default SingleUserPage;
+export default SingleUserClient;

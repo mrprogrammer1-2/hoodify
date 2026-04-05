@@ -18,6 +18,10 @@ export const usersTable = pgTable("users_table", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   email: text("email"),
+  avatar: text("avatar_url"),
+  phone: text("phone"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const products = pgTable("products", {

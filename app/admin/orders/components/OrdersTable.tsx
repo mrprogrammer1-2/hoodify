@@ -23,7 +23,7 @@ type Order = {
 
 export default function OrdersTable({ data }: { data: Order[] }) {
   return (
-    <div className="container mx-auto py-4">
+    <div className="container mx-auto py-7">
       <DataTable columns={columns} data={data} />
     </div>
   );

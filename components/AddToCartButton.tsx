@@ -2,9 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { createOrder } from "@/lib/actions/createOrder";
+import { checkUserActive } from "@/lib/actions/checkUserActive";
 import { useCartStore } from "@/stores/cart-store";
 import { ShoppingCart, Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 import * as fabric from "fabric";
 
@@ -147,8 +148,15 @@ export function AddToCartButton({
   const { isAuthenticated } = useKindeBrowserClient();
   const [added, setAdded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [isUserActive, setIsUserActive] = useState(true);
 
-  const canAddToCart = Boolean(variantColor && variantSize);
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkUserActive().then(setIsUserActive);
+    }
+  }, [isAuthenticated]);
+
+  const canAddToCart = Boolean(variantColor && variantSize) && isUserActive;
 
   const handleAddToCart = async () => {
     if (!canAddToCart || isAdding) return;
@@ -226,6 +234,7 @@ export function AddToCartButton({
     <Button
       onClick={handleAddToCart}
       disabled={!canAddToCart || isAdding}
+      title={!isUserActive ? "Your account is inactive" : ""}
       className={className}
     >
       {isAdding ? (
@@ -233,7 +242,7 @@ export function AddToCartButton({
       ) : (
         <ShoppingCart className="h-4 w-4" />
       )}
-      {isAdding ? "Adding..." : added ? "Added!" : "Add to Cart"}
+      {isAdding ? "Adding..." : added ? "Added!" : !isUserActive ? "Account Inactive" : "Add to Cart"}
     </Button>
   );
 }

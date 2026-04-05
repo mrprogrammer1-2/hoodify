@@ -46,7 +46,6 @@ const sideBarItems = [
 
 const settingsItems = [
   { name: "Pricing", path: "/admin/pricing", icon: DollarSign },
-  { name: "Settings", path: "/admin/settings", icon: Settings },
 ];
 
 export default function AdminSideBarClient({

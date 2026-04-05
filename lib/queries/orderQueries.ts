@@ -166,6 +166,10 @@ export const getAllOrders = async (search?: string) => {
       orders.status,
       orders.currency,
       orders.createdAt,
+    )
+    .orderBy(
+      sql`CASE WHEN ${orders.status} = 'pending' THEN 0 ELSE 1 END`,
+      desc(orders.createdAt),
     );
 };
 
@@ -187,10 +191,32 @@ export const userTotalSpent = async (userId: string) => {
 export const userTotalOrders = async (userId: string) => {
   const totalOrders = await db
     .select({
-      total: sql<number>`COALESCE(COUNT(${orders.id}), 0)`.as("total"),
+      total: sql<number>`COUNT(DISTINCT ${orders.id})`.as("total"),
     })
     .from(orders)
-    .where(and(eq(orders.userId, userId), eq(orders.status, "delivered")));
+    .where(and(eq(orders.userId, userId), not(eq(orders.status, "cart"))));
+
+  return totalOrders[0].total;
+};
+
+export const userTotalPendingOrders = async (userId: string) => {
+  const totalOrders = await db
+    .select({
+      total: sql<number>`COUNT(DISTINCT ${orders.id})`.as("total"),
+    })
+    .from(orders)
+    .where(and(eq(orders.userId, userId), eq(orders.status, "pending")));
+
+  return totalOrders[0].total;
+};
+
+export const userTotalCancelledOrders = async (userId: string) => {
+  const totalOrders = await db
+    .select({
+      total: sql<number>`COUNT(DISTINCT ${orders.id})`.as("total"),
+    })
+    .from(orders)
+    .where(and(eq(orders.userId, userId), eq(orders.status, "cancelled")));
 
   return totalOrders[0].total;
 };
@@ -214,12 +240,3 @@ export const userRecentOrders = async (userId: string) => {
 
   return recentOrders;
 };
-
-export async function OrderTotal(orderId: string) {
-  const total = await db
-    .select({
-      total: sum(orderItems.quantity).mapWith(Number),
-    })
-    .from(orderItems)
-    .where(eq(orderItems.orderId, orderId));
-}

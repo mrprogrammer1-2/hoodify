@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { deleteProducts } from "@/lib/actions/deleteProducts";
+import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal";
 
 interface ActionsCellProps {
   product: SingleProductClientType;
@@ -18,6 +21,21 @@ interface ActionsCellProps {
 
 export default function ActionsCell({ product }: ActionsCellProps) {
   const router = useRouter();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteProducts([product.id]);
+      setShowConfirmModal(false);
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting product:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -40,8 +58,20 @@ export default function ActionsCell({ product }: ActionsCellProps) {
         >
           View product
         </DropdownMenuItem>
-        <DropdownMenuItem>Delete</DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setShowConfirmModal(true)}
+          className="text-red-600"
+        >
+          Delete
+        </DropdownMenuItem>
       </DropdownMenuContent>
+      <ConfirmDeleteModal
+        open={showConfirmModal}
+        onOpenChange={setShowConfirmModal}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        itemCount={1}
+      />
     </DropdownMenu>
   );
 }

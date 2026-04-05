@@ -1,5 +1,3 @@
-// import * as fabric from "fabric";
-
 type CreateProductInput = {
   name: string;
   description?: string;
@@ -29,6 +27,10 @@ type User = {
   firstName: string | null;
   lastName: string | null;
   email: string | null;
+  avatar: string | null;
+  phone: string | null;
+  active: boolean;
+  createdAt: Date;
 };
 
 type Order = {

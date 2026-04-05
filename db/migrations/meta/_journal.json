@@ -22,6 +22,20 @@
       "when": 1773322156616,
       "tag": "0002_spooky_bushwacker",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773578643964,
+      "tag": "0003_friendly_snowbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773598843413,
+      "tag": "0004_powerful_sersi",
+      "breakpoints": true
     }
   ]
 }
